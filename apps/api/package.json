@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@infrapilot/shared-types": "workspace:*",
+    "@infrapilot/deployment-agent": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.18.3",
     "ws": "^8.16.0"

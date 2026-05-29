@@ -2,12 +2,15 @@
   "name": "@infrapilot/deployment-agent",
   "version": "1.0.0",
   "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@infrapilot/shared-types": "workspace:*",
     "dotenv": "^16.4.5"
   },

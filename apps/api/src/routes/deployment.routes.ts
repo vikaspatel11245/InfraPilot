@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { Deployment, RecommendedInfra, DeploymentFix } from "@infrapilot/shared-types";
+import { Orchestrator } from "@infrapilot/deployment-agent";
+
 
 const router: Router = Router();
 
@@ -101,8 +103,16 @@ router.post("/", (req, res) => {
 
   deploymentsDb[newId] = newDeployment;
   
-  // Kick off simple mock worker timeline changes asynchronously
-  mockProgressRunner(newId);
+  // Kick off the real autonomous AI orchestrator asynchronously
+  const orchestrator = new Orchestrator();
+  orchestrator.run(newDeployment, (updates) => {
+    deploymentsDb[newId] = {
+      ...deploymentsDb[newId],
+      ...updates,
+    };
+  }).catch((err) => {
+    console.error(`Autonomous orchestration execution failed for deploy ID: ${newId}`, err);
+  });
 
   res.status(201).json(newDeployment);
 });

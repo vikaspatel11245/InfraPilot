@@ -82,7 +82,7 @@ export default function DeploymentDetail() {
           {/* Interactive virtualized terminal stream */}
           <LogStream logs={activeDeployment.agentThoughts.map(t => ({
             timestamp: t.timestamp,
-            source: t.type === "act" ? "stdout" : "agent",
+            source: t.data?.source || (t.type === "act" ? "stdout" : "agent"),
             message: t.thought
           }))} />
 
