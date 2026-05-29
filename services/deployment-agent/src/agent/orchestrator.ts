@@ -270,7 +270,19 @@ app.listen(port, () => {
       updatePhase("planning", "running", "Creating execution plans and cloud spec manifests...");
       addThought("plan", `[Planning] Creating custom task charts optimized for provider: ${recommendedInfra.provider}`);
       
-      const provider = recommendedInfra.provider;
+      let provider = recommendedInfra.provider;
+      
+      const hasVercel = !!(credentials?.vercelToken || process.env.VERCEL_TOKEN);
+      const hasRailway = !!(credentials?.railwayToken || process.env.RAILWAY_TOKEN);
+
+      if (provider === "railway" && !hasRailway && hasVercel) {
+        addThought("reflect", "[Orchestration Rerouting] Railway recommended, but RAILWAY_TOKEN is missing. Since a VERCEL_TOKEN is active, dynamically rerouting deployment flow to Vercel Serverless adapters...");
+        provider = "vercel";
+      } else if (provider === "vercel" && !hasVercel && hasRailway) {
+        addThought("reflect", "[Orchestration Rerouting] Vercel recommended, but VERCEL_TOKEN is missing. Since a RAILWAY_TOKEN is active, dynamically rerouting deployment flow to Railway Container engines...");
+        provider = "railway";
+      }
+
       addThought("observe", `[Planning] Mapped deployment adapter configuration flow: [Build] -> [CLI Push] -> [Verify].`);
       updatePhase("planning", "success", `Deployment plans configured for target provider: ${provider}.`);
 
