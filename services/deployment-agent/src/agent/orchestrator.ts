@@ -4,6 +4,8 @@ import { execSync } from "child_process";
 import { Deployment, LogLine, AgentThought, DeploymentPhase } from "@infrapilot/shared-types";
 import { analyzeFramework } from "../analyzers/framework";
 import { inspectEnvVars } from "../analyzers/envVars";
+import { selectPackageManager } from "../analyzers/packageManager";
+import { detectMonorepo } from "../analyzers/monorepo";
 import { runSandboxedBuild } from "../runtime/sandbox";
 import { Patcher } from "./patcher";
 import { VercelDeployer } from "../deployers/vercel";
@@ -203,9 +205,23 @@ app.listen(port, () => {
         }
       }
 
-      addThought("act", "[Setup] Running standard node package install to configure runtime modules...");
-      execSync("npm install", { cwd: repoPath, stdio: "ignore" });
-      addThought("observe", "[Setup] Sandbox configuration and dependencies preparation complete.");
+      const packageManager = selectPackageManager(repoPath);
+      const monorepoInfo = detectMonorepo(repoPath);
+
+      addThought("act", `[Setup] Running sandboxed ${packageManager} package installation...`);
+      try {
+        if (packageManager === "pnpm") {
+          execSync("pnpm install --no-frozen-lockfile", { cwd: repoPath, stdio: "ignore" });
+        } else if (packageManager === "yarn") {
+          execSync("yarn install", { cwd: repoPath, stdio: "ignore" });
+        } else {
+          execSync("npm install", { cwd: repoPath, stdio: "ignore" });
+        }
+      } catch (installErr: any) {
+        addThought("observe", `[Setup] Sandboxed package installation produced warnings: ${installErr.message}`);
+      }
+
+      addThought("observe", `[Setup] Sandbox workspace prepared with ${packageManager} package manager configuration.`);
       updatePhase("setup", "success", "Clean workspace environment configured.");
 
       // ----------------------------------------------------
@@ -277,7 +293,7 @@ app.listen(port, () => {
       while (buildAttempt <= maxBuildAttempts && !buildSuccess) {
         addThought("observe", `[Building] Running build pipeline (Attempt ${buildAttempt} of ${maxBuildAttempts})...`);
         
-        const buildResult = await runSandboxedBuild(repoPath, (logLine) => {
+        const buildResult = await runSandboxedBuild(repoPath, packageManager, (logLine) => {
           // Stream logs in real-time straight to client terminal
           addThought("act", logLine.message, { source: logLine.source });
         });

@@ -8,13 +8,25 @@ export interface SandboxBuildResult {
 
 export function runSandboxedBuild(
   repoPath: string,
+  packageManager: "npm" | "pnpm" | "yarn",
   onLog: (line: LogLine) => void
 ): Promise<SandboxBuildResult> {
   return new Promise((resolve) => {
-    console.log(`[Sandbox Runtime] Triggering sandboxed npm run build inside: ${repoPath}`);
+    let cmd = "npm";
+    let args = ["run", "build"];
+
+    if (packageManager === "pnpm") {
+      cmd = "pnpm";
+      args = ["build"];
+    } else if (packageManager === "yarn") {
+      cmd = "yarn";
+      args = ["build"];
+    }
+
+    console.log(`[Sandbox Runtime] Triggering sandboxed ${cmd} ${args.join(" ")} inside: ${repoPath}`);
     
-    // Spawns npm run build in parent node thread environment
-    const proc = spawn("npm", ["run", "build"], { 
+    // Spawns production build command inside target repository environment
+    const proc = spawn(cmd, args, { 
       cwd: repoPath, 
       shell: true,
       env: { ...process.env, NODE_ENV: "production" }
