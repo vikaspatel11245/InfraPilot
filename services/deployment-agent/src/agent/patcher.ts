@@ -2,7 +2,7 @@ import fs from "fs";
 import { askGeminiPatcher } from "../llm/client";
 
 export class Patcher {
-  async applyPatch(filePath: string, errorLog: string): Promise<boolean> {
+  async applyPatch(filePath: string, errorLog: string, customApiKey?: string): Promise<boolean> {
     console.log(`[Agent Patcher] Automated self-healing engaged for failing file: ${filePath}`);
     
     if (!fs.existsSync(filePath)) {
@@ -14,7 +14,7 @@ export class Patcher {
       const originalContent = fs.readFileSync(filePath, "utf-8");
       
       // Call our Google Generative AI patcher engine
-      const patchedContent = await askGeminiPatcher(originalContent, errorLog);
+      const patchedContent = await askGeminiPatcher(originalContent, errorLog, customApiKey);
       
       if (patchedContent && patchedContent !== originalContent) {
         fs.writeFileSync(filePath, patchedContent, "utf-8");

@@ -17,7 +17,12 @@ export class Orchestrator {
 
   async run(
     deployment: Deployment,
-    onUpdate: (updates: Partial<Deployment>) => void
+    onUpdate: (updates: Partial<Deployment>) => void,
+    credentials?: {
+      vercelToken?: string;
+      railwayToken?: string;
+      geminiKey?: string;
+    }
   ): Promise<void> {
     const monorepoRoot = path.resolve(__dirname, "../../../");
     const tempDeploymentsDir = path.join(monorepoRoot, "temp-deployments");
@@ -245,7 +250,7 @@ app.listen(port, () => {
         Package.json: ${fs.readFileSync(path.join(repoPath, "package.json"), "utf-8")}
       `;
 
-      const recommendedInfra = await askGeminiArchitect(codeMetadata);
+      const recommendedInfra = await askGeminiArchitect(codeMetadata, credentials?.geminiKey);
       
       addThought("reflect", `[Analysis] Gemini recommended: ${recommendedInfra.provider.toUpperCase()} (Confidence: ${(recommendedInfra.confidence * 100).toFixed(0)}%)`);
       recommendedInfra.reasoning.forEach((reason: string) => {
@@ -313,7 +318,7 @@ app.listen(port, () => {
               
               updatePhase("building", "running", `Repairing ${fileBasename} via Gemini Patcher...`);
 
-              const patchApplied = await this.patcher.applyPatch(failingFile, buildResult.errorLog || "");
+              const patchApplied = await this.patcher.applyPatch(failingFile, buildResult.errorLog || "", credentials?.geminiKey);
 
               if (patchApplied) {
                 const fixId = `fix-${Math.random().toString(36).substring(2, 7)}`;
@@ -364,11 +369,17 @@ app.listen(port, () => {
 
       if (provider === "vercel") {
         const vercelDeployer = new VercelDeployer();
-        const result = await vercelDeployer.deploy({ repoPath });
+        const result = await vercelDeployer.deploy({ 
+          repoPath,
+          token: credentials?.vercelToken 
+        });
         deployUrl = result.url;
       } else {
         const railwayDeployer = new RailwayDeployer();
-        const result = await railwayDeployer.deploy({ repoPath });
+        const result = await railwayDeployer.deploy({ 
+          repoPath,
+          token: credentials?.railwayToken 
+        });
         deployUrl = result.url;
       }
 

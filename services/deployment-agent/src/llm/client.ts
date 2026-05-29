@@ -30,8 +30,10 @@ export const infraSchema = {
   required: ["provider", "estimatedCost", "confidence", "reasoning", "suggestedSpecs"]
 };
 
-export async function askGeminiArchitect(codeContext: string) {
-  if (!ai) {
+export async function askGeminiArchitect(codeContext: string, customApiKey?: string) {
+  const activeKey = customApiKey || apiKey;
+  
+  if (!activeKey) {
     // Return a clean fallback matching schema when API Key is missing (simulated mode)
     return {
       provider: "vercel",
@@ -50,7 +52,8 @@ export async function askGeminiArchitect(codeContext: string) {
   }
 
   try {
-    const model = ai.getGenerativeModel({
+    const client = new GoogleGenerativeAI(activeKey);
+    const model = client.getGenerativeModel({
       model: "gemini-1.5-pro",
       systemInstruction: "You are an expert autonomous cloud systems architect. Analyze the provided codebase metadata and return the optimal cost-effective hosting target."
     });
@@ -76,14 +79,17 @@ export async function askGeminiArchitect(codeContext: string) {
   }
 }
 
-export async function askGeminiPatcher(fileContent: string, errorLog: string): Promise<string> {
-  if (!ai) {
+export async function askGeminiPatcher(fileContent: string, errorLog: string, customApiKey?: string): Promise<string> {
+  const activeKey = customApiKey || apiKey;
+  
+  if (!activeKey) {
     // Return simulated fix if API key is not supplied
     return fileContent;
   }
 
   try {
-    const model = ai.getGenerativeModel({
+    const client = new GoogleGenerativeAI(activeKey);
+    const model = client.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: "You are an expert autonomous software debugger. Fix the provided source code to resolve the compiler error."
     });

@@ -73,7 +73,7 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { repoUrl, branch } = req.body;
+  const { repoUrl, branch, vercelToken, railwayToken, geminiKey } = req.body;
   const newId = `deploy-${Math.random().toString(36).substring(2, 11)}`;
 
   const newDeployment: Deployment = {
@@ -110,6 +110,10 @@ router.post("/", (req, res) => {
       ...deploymentsDb[newId],
       ...updates,
     };
+  }, {
+    vercelToken,
+    railwayToken,
+    geminiKey
   }).catch((err) => {
     console.error(`Autonomous orchestration execution failed for deploy ID: ${newId}`, err);
   });

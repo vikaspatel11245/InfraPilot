@@ -25,11 +25,21 @@ export async function fetchDeploymentById(id: string): Promise<Deployment | null
 }
 
 export async function triggerDeployment(repoUrl: string, branch: string = "main"): Promise<Deployment | null> {
+  const vercelToken = typeof window !== "undefined" ? localStorage.getItem("infrapilot_vercel_token") || "" : "";
+  const railwayToken = typeof window !== "undefined" ? localStorage.getItem("infrapilot_railway_token") || "" : "";
+  const geminiKey = typeof window !== "undefined" ? localStorage.getItem("infrapilot_gemini_key") || "" : "";
+
   try {
     const res = await fetch(`${API_BASE}/deployments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repoUrl, branch }),
+      body: JSON.stringify({ 
+        repoUrl, 
+        branch, 
+        vercelToken, 
+        railwayToken, 
+        geminiKey 
+      }),
     });
     if (!res.ok) throw new Error("Failed to trigger deployment");
     return await res.json();
