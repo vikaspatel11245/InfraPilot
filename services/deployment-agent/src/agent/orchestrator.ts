@@ -9,7 +9,7 @@ import { detectMonorepo } from "../analyzers/monorepo";
 import { runSandboxedBuild } from "../runtime/sandbox";
 import { Patcher } from "./patcher";
 import { VercelDeployer } from "../deployers/vercel";
-import { RailwayDeployer } from "../deployers/railway";
+import { RenderDeployer } from "../deployers/render";
 import { askGeminiArchitect } from "../llm/client";
 
 export class Orchestrator {
@@ -20,7 +20,7 @@ export class Orchestrator {
     onUpdate: (updates: Partial<Deployment>) => void,
     credentials?: {
       vercelToken?: string;
-      railwayToken?: string;
+      renderToken?: string;
       geminiKey?: string;
     }
   ): Promise<void> {
@@ -273,14 +273,19 @@ app.listen(port, () => {
       let provider = recommendedInfra.provider;
       
       const hasVercel = !!(credentials?.vercelToken || process.env.VERCEL_TOKEN);
-      const hasRailway = !!(credentials?.railwayToken || process.env.RAILWAY_TOKEN);
+      const hasRender = !!(credentials?.renderToken || process.env.RENDER_TOKEN);
 
-      if (provider === "railway" && !hasRailway && hasVercel) {
-        addThought("reflect", "[Orchestration Rerouting] Railway recommended, but RAILWAY_TOKEN is missing. Since a VERCEL_TOKEN is active, dynamically rerouting deployment flow to Vercel Serverless adapters...");
+      if (provider === "railway") {
+        addThought("reflect", "[Orchestration Target Swap] Railway hosting identified. Rerouting pipeline flow to Render (for backend containers) and Vercel (for frontend UI)...");
+        provider = "render";
+      }
+
+      if (provider === "render" && !hasRender && hasVercel) {
+        addThought("reflect", "[Orchestration Rerouting] Render recommended, but RENDER_TOKEN is missing. Since a VERCEL_TOKEN is active, dynamically rerouting all builds to Vercel...");
         provider = "vercel";
-      } else if (provider === "vercel" && !hasVercel && hasRailway) {
-        addThought("reflect", "[Orchestration Rerouting] Vercel recommended, but VERCEL_TOKEN is missing. Since a RAILWAY_TOKEN is active, dynamically rerouting deployment flow to Railway Container engines...");
-        provider = "railway";
+      } else if (provider === "vercel" && !hasVercel && hasRender) {
+        addThought("reflect", "[Orchestration Rerouting] Vercel recommended, but VERCEL_TOKEN is missing. Since a RENDER_TOKEN is active, dynamically rerouting all builds to Render...");
+        provider = "render";
       }
 
       addThought("observe", `[Planning] Mapped deployment adapter configuration flow: [Build] -> [CLI Push] -> [Verify].`);
@@ -375,24 +380,58 @@ app.listen(port, () => {
       // Phase 6: Deploying
       // ----------------------------------------------------
       updatePhase("deploying", "running", "Pushing build package assets online...");
-      addThought("act", `[Deploying] Initializing target adapter deployer for: ${provider}`);
-
+      
       let deployUrl = "";
 
-      if (provider === "vercel") {
+      if (monorepoInfo.isMonorepo) {
+        addThought("act", "[Coordinated Deployment] Probing monorepo packages. Directing backend express API to Render and frontend Next.js to Vercel...");
+        
+        // Step 6.1: Deploy Backend to Render
+        addThought("act", "[Coordinated Deployment] Step 1/3: Triggering Render adapter to deploy backend service (apps/api)...");
+        
+        const renderDeployer = new RenderDeployer();
+        const renderResult = await renderDeployer.deploy({
+          repoPath: path.join(repoPath, "apps/api"),
+          token: credentials?.renderToken
+        });
+        
+        const backendUrl = renderResult.url;
+        addThought("reflect", `[Coordinated Deployment] Backend service live on Render at: ${backendUrl}`);
+        
+        // Step 6.2: Deploy Frontend to Vercel with Environment bindings!
+        addThought("act", `[Coordinated Deployment] Step 2/3: Binding backend URL (NEXT_PUBLIC_API_URL = ${backendUrl}) and compiling Next.js targets...`);
+        
         const vercelDeployer = new VercelDeployer();
-        const result = await vercelDeployer.deploy({ 
-          repoPath,
-          token: credentials?.vercelToken 
+        const vercelResult = await vercelDeployer.deploy({
+          repoPath: path.join(repoPath, "apps/web"),
+          token: credentials?.vercelToken,
+          envVars: {
+            NEXT_PUBLIC_API_URL: backendUrl
+          }
         });
-        deployUrl = result.url;
+        
+        deployUrl = vercelResult.url;
+        addThought("reflect", `[Coordinated Deployment] Step 3/3: Connected frontend service live on Vercel at: ${deployUrl}`);
+        
       } else {
-        const railwayDeployer = new RailwayDeployer();
-        const result = await railwayDeployer.deploy({ 
-          repoPath,
-          token: credentials?.railwayToken 
-        });
-        deployUrl = result.url;
+        // Single package deployment flow
+        addThought("act", `[Deploying] Initializing single-package target adapter deployer for: ${provider}`);
+        
+        if (provider === "vercel") {
+          const vercelDeployer = new VercelDeployer();
+          const result = await vercelDeployer.deploy({ 
+            repoPath,
+            token: credentials?.vercelToken 
+          });
+          deployUrl = result.url;
+        } else {
+          const renderDeployer = new RenderDeployer();
+          const result = await renderDeployer.deploy({ 
+            repoPath,
+            token: credentials?.renderToken 
+          });
+          deployUrl = result.url;
+        }
       }
 
       addThought("observe", `[Deploying] Deploy adapter successfully completed task.`);

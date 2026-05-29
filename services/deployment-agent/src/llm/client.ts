@@ -23,7 +23,7 @@ if (apiKey) {
 export const infraSchema = {
   type: SchemaType.OBJECT,
   properties: {
-    provider: { type: SchemaType.STRING, description: "vercel | railway | render | flyio" },
+    provider: { type: SchemaType.STRING, description: "vercel | render | flyio" },
     estimatedCost: { type: SchemaType.STRING },
     confidence: { type: SchemaType.NUMBER },
     reasoning: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -79,7 +79,7 @@ export async function askGeminiArchitect(codeContext: string, customApiKey?: str
   } catch (err) {
     console.error("Gemini Architect call failed, using fallback spec.", err);
     return {
-      provider: "railway",
+      provider: "render",
       estimatedCost: "$5.00",
       confidence: 0.85,
       reasoning: ["Encountered fallback analysis loop.", "Generic Node.js environment matched."],

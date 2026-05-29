@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const [geminiKey, setGeminiKey] = useState("");
   const [gitToken, setGitToken] = useState("");
   const [vercelToken, setVercelToken] = useState("");
-  const [railwayToken, setRailwayToken] = useState("");
+  const [renderToken, setRenderToken] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function SettingsPage() {
       setGeminiKey(localStorage.getItem("infrapilot_gemini_key") || "");
       setGitToken(localStorage.getItem("infrapilot_github_token") || "");
       setVercelToken(localStorage.getItem("infrapilot_vercel_token") || "");
-      setRailwayToken(localStorage.getItem("infrapilot_railway_token") || "");
+      setRenderToken(localStorage.getItem("infrapilot_render_token") || "");
     }
   }, []);
 
@@ -25,7 +25,7 @@ export default function SettingsPage() {
       localStorage.setItem("infrapilot_gemini_key", geminiKey);
       localStorage.setItem("infrapilot_github_token", gitToken);
       localStorage.setItem("infrapilot_vercel_token", vercelToken);
-      localStorage.setItem("infrapilot_railway_token", railwayToken);
+      localStorage.setItem("infrapilot_render_token", renderToken);
       
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
@@ -92,12 +92,12 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-mono text-zinc-500 block mb-1">RAILWAY API TOKEN</label>
+                <label className="text-xs font-mono text-zinc-500 block mb-1">RENDER API KEY</label>
                 <Input
                   type="password"
-                  value={railwayToken}
-                  onChange={(e) => setRailwayToken(e.target.value)}
-                  placeholder="Enter Railway CLI push token"
+                  value={renderToken}
+                  onChange={(e) => setRenderToken(e.target.value)}
+                  placeholder="Enter Render Account API key"
                   className="font-mono text-xs text-white placeholder-zinc-600 border-zinc-800 bg-zinc-900/40"
                 />
               </div>

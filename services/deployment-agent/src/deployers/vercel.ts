@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import { BaseDeployer } from "./base";
 
 export class VercelDeployer extends BaseDeployer {
-  async deploy(context: { repoPath: string; token?: string }) {
+  async deploy(context: { repoPath: string; token?: string; envVars?: Record<string, string> }) {
     console.log("[Vercel Deployer] Starting Next.js app Vercel compilation...");
     
     const vercelToken = context.token || process.env.VERCEL_TOKEN;
@@ -14,7 +14,15 @@ export class VercelDeployer extends BaseDeployer {
 
     try {
       console.log("[Vercel Deployer] Executing headless deployment via Vercel CLI...");
-      const output = execSync(`npx vercel --token ${vercelToken} --prod --yes`, {
+      
+      let cmd = `npx vercel --token ${vercelToken} --prod --yes`;
+      if (context.envVars) {
+        for (const [key, val] of Object.entries(context.envVars)) {
+          cmd += ` --env ${key}=${val}`;
+        }
+      }
+
+      const output = execSync(cmd, {
         cwd: context.repoPath,
         env: { ...process.env },
         stdio: "pipe"

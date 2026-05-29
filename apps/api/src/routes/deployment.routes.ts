@@ -73,7 +73,7 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { repoUrl, branch, vercelToken, railwayToken, geminiKey } = req.body;
+  const { repoUrl, branch, vercelToken, renderToken, geminiKey } = req.body;
   const newId = `deploy-${Math.random().toString(36).substring(2, 11)}`;
 
   const newDeployment: Deployment = {
@@ -112,7 +112,7 @@ router.post("/", (req, res) => {
     };
   }, {
     vercelToken,
-    railwayToken,
+    renderToken,
     geminiKey
   }).catch((err) => {
     console.error(`Autonomous orchestration execution failed for deploy ID: ${newId}`, err);
@@ -159,7 +159,7 @@ function mockProgressRunner(id: string) {
       dep.currentPhase = "done";
       dep.status = "success";
       dep.recommendedInfra = {
-        provider: "railway",
+        provider: "render",
         estimatedCost: "$5.00",
         confidence: 0.95,
         reasoning: ["Detected minimal container requirements.", "Mapped standard node runtime parameters."],

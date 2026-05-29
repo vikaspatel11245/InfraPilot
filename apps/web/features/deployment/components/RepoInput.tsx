@@ -17,21 +17,21 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
   const [branches, setBranches] = useState<string[]>([]);
   const [selectedBranch, setSelectedBranch] = useState("main");
 
-  // Multi-user dynamic Vercel / Railway connections
+  // Multi-user dynamic Vercel / Render connections
   const [vercelConnected, setVercelConnected] = useState(false);
-  const [railwayConnected, setRailwayConnected] = useState(false);
+  const [renderConnected, setRenderConnected] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [vercelToken, setVercelToken] = useState("");
-  const [railwayToken, setRailwayToken] = useState("");
+  const [renderToken, setRenderToken] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const vToken = localStorage.getItem("infrapilot_vercel_token") || "";
-      const rToken = localStorage.getItem("infrapilot_railway_token") || "";
+      const rToken = localStorage.getItem("infrapilot_render_token") || "";
       setVercelConnected(!!vToken);
-      setRailwayConnected(!!rToken);
+      setRenderConnected(!!rToken);
       setVercelToken(vToken);
-      setRailwayToken(rToken);
+      setRenderToken(rToken);
     }
   }, []);
 
@@ -69,9 +69,9 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
   const handleConnect = () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("infrapilot_vercel_token", vercelToken);
-      localStorage.setItem("infrapilot_railway_token", railwayToken);
+      localStorage.setItem("infrapilot_render_token", renderToken);
       setVercelConnected(!!vercelToken);
-      setRailwayConnected(!!railwayToken);
+      setRenderConnected(!!renderToken);
       setShowConnectModal(false);
     }
   };
@@ -92,7 +92,7 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
               onClick={() => setShowConnectModal(true)}
               className="text-xs font-semibold font-mono px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
             >
-              <div className={`w-1.5 h-1.5 rounded-full ${vercelConnected || railwayConnected ? "bg-emerald-400" : "bg-indigo-400"}`} />
+              <div className={`w-1.5 h-1.5 rounded-full ${vercelConnected || renderConnected ? "bg-emerald-400" : "bg-indigo-400"}`} />
               Connect Cloud Account
             </button>
           </div>
@@ -165,7 +165,7 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
             </Button>
 
             {/* Cloud Connection Warnings / Success Indicators */}
-            {!vercelConnected && !railwayConnected ? (
+            {!vercelConnected && !renderConnected ? (
               <div className="p-3.5 rounded-lg bg-indigo-500/5 border border-indigo-500/15 flex items-center justify-between text-xs font-mono mt-2">
                 <span className="text-zinc-400 font-light flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 animate-pulse" />
@@ -176,14 +176,14 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
                   onClick={() => setShowConnectModal(true)}
                   className="px-2.5 py-1.5 rounded-md bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 transition-all font-semibold cursor-pointer select-none"
                 >
-                  Connect Vercel/Railway
+                  Connect Vercel/Render
                 </button>
               </div>
             ) : (
               <div className="p-3.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 flex items-center justify-between text-xs font-mono mt-2">
                 <span className="text-emerald-400/90 font-light flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  Cloud active: {vercelConnected && "Vercel"} {vercelConnected && railwayConnected && "&"} {railwayConnected && "Railway"} (Production online).
+                  Cloud active: {vercelConnected && "Vercel"} {vercelConnected && renderConnected && "&"} {renderConnected && "Render"} (Production online).
                 </span>
                 <button
                   type="button"
@@ -215,7 +215,7 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
                 Connect Cloud Accounts
               </h3>
               <p className="text-xs text-zinc-400 font-light leading-relaxed">
-                Provide your personal API credentials below to authorize the agent to deploy directly to your Vercel and Railway accounts.
+                Provide your personal API credentials below to authorize the agent to deploy directly to your Vercel and Render accounts.
               </p>
             </div>
 
@@ -240,12 +240,12 @@ export function RepoInput({ onDeploy, isDeploying = false }: RepoInputProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-mono text-zinc-500 block mb-1">RAILWAY API TOKEN</label>
+                <label className="text-[10px] font-mono text-zinc-500 block mb-1">RENDER API KEY</label>
                 <input
                   type="password"
-                  placeholder="Enter Railway CLI push token"
-                  value={railwayToken}
-                  onChange={(e) => setRailwayToken(e.target.value)}
+                  placeholder="Enter Render Account API key"
+                  value={renderToken}
+                  onChange={(e) => setRenderToken(e.target.value)}
                   className="w-full h-10 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 text-xs text-white placeholder-zinc-700 font-mono focus:outline-none focus:border-zinc-700 transition-all"
                 />
               </div>

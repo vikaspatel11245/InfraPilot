@@ -6,5 +6,5 @@ export * from "./analyzers/framework";
 export * from "./analyzers/envVars";
 export * from "./runtime/sandbox";
 export * from "./deployers/vercel";
-export * from "./deployers/railway";
+export * from "./deployers/render";
 

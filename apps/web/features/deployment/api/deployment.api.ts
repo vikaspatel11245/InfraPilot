@@ -26,7 +26,7 @@ export async function fetchDeploymentById(id: string): Promise<Deployment | null
 
 export async function triggerDeployment(repoUrl: string, branch: string = "main"): Promise<Deployment | null> {
   const vercelToken = typeof window !== "undefined" ? localStorage.getItem("infrapilot_vercel_token") || "" : "";
-  const railwayToken = typeof window !== "undefined" ? localStorage.getItem("infrapilot_railway_token") || "" : "";
+  const renderToken = typeof window !== "undefined" ? localStorage.getItem("infrapilot_render_token") || "" : "";
   const geminiKey = typeof window !== "undefined" ? localStorage.getItem("infrapilot_gemini_key") || "" : "";
 
   try {
@@ -37,7 +37,7 @@ export async function triggerDeployment(repoUrl: string, branch: string = "main"
         repoUrl, 
         branch, 
         vercelToken, 
-        railwayToken, 
+        renderToken, 
         geminiKey 
       }),
     });
