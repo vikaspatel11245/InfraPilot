@@ -1,0 +1,13 @@
+FROM node:20-alpine AS base
+RUN npm install -g pnpm
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm --filter @infrapilot/web build
+EXPOSE 3000
+CMD ["pnpm", "--filter", "@infrapilot/web", "start"]

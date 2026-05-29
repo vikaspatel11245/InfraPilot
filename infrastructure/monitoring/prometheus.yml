@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "infrapilot-api"
+    static_configs:
+      - targets: ["api:4000"]
+
+  - job_name: "infrapilot-agent"
+    static_configs:
+      - targets: ["deployment-agent:9090"]

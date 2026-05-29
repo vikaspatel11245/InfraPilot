@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infrapilot-api
+  labels:
+    app: infrapilot-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: infrapilot-api
+  template:
+    metadata:
+      labels:
+        app: infrapilot-api
+    spec:
+      containers:
+      - name: api
+        image: infrapilot-api:latest
+        ports:
+        - containerPort: 4000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: infrapilot-secrets
+              key: database-url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infrapilot-api-svc
+spec:
+  selector:
+    app: infrapilot-api
+  ports:
+  - protocol: TCP
+    port: 4000
+    targetPort: 4000
+  type: ClusterIP

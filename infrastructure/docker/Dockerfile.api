@@ -1,0 +1,12 @@
+FROM node:20-alpine AS base
+RUN npm install -g pnpm
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm --filter @infrapilot/api build
+EXPOSE 4000
+CMD ["pnpm", "--filter", "@infrapilot/api", "start"]
