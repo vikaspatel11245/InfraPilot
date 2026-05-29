@@ -1,7 +1,16 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import * as dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
 
+// Load standard .env configuration
 dotenv.config();
+
+// Load from monorepo root workspace if present
+const rootEnv = path.resolve(__dirname, "../../../../.env");
+if (fs.existsSync(rootEnv)) {
+  dotenv.config({ path: rootEnv });
+}
 
 const apiKey = process.env.GEMINI_API_KEY || "";
 let ai: GoogleGenerativeAI | null = null;
