@@ -226,6 +226,23 @@ app.listen(port, () => {
         addThought("observe", `[Setup] Sandboxed package installation produced warnings: ${installErr.message}`);
       }
 
+      if (monorepoInfo.isMonorepo && monorepoInfo.frontendPath) {
+        const frontendFullPath = path.join(repoPath, monorepoInfo.frontendPath);
+        const frontendPM = selectPackageManager(frontendFullPath);
+        addThought("act", `[Setup] Monorepo layout detected. Running sandboxed installation in frontend folder (${monorepoInfo.frontendPath}) via ${frontendPM}...`);
+        try {
+          if (frontendPM === "pnpm") {
+            execSync("pnpm install --no-frozen-lockfile", { cwd: frontendFullPath, stdio: "ignore" });
+          } else if (frontendPM === "yarn") {
+            execSync("yarn install", { cwd: frontendFullPath, stdio: "ignore" });
+          } else {
+            execSync("npm install", { cwd: frontendFullPath, stdio: "ignore" });
+          }
+        } catch (installErr: any) {
+          addThought("observe", `[Setup] Frontend package installation produced warnings: ${installErr.message}`);
+        }
+      }
+
       addThought("observe", `[Setup] Sandbox workspace prepared with ${packageManager} package manager configuration.`);
       updatePhase("setup", "success", "Clean workspace environment configured.");
 
@@ -235,7 +252,13 @@ app.listen(port, () => {
       updatePhase("analysis", "running", "Scanning package dependencies and directory targets...");
       addThought("analyze", "[Analysis] Initiating codebase architecture profiling...");
 
-      const framework = analyzeFramework(repoPath);
+      let framework = analyzeFramework(repoPath);
+      if (monorepoInfo.isMonorepo && monorepoInfo.frontendPath) {
+        const frontendFramework = analyzeFramework(path.join(repoPath, monorepoInfo.frontendPath));
+        if (frontendFramework !== "vanilla-static" && frontendFramework !== "node-generic") {
+          framework = `hybrid-${frontendFramework}`;
+        }
+      }
       const envVars = inspectEnvVars(repoPath);
 
       addThought("observe", `[Analysis] Identified framework signature: ${framework}`);
@@ -243,11 +266,16 @@ app.listen(port, () => {
 
       addThought("plan", "[Analysis] Requesting hosting target specs recommendation from Gemini Cloud Architect...");
       
+      const frontendPjson = monorepoInfo.isMonorepo && monorepoInfo.frontendPath && fs.existsSync(path.join(repoPath, monorepoInfo.frontendPath, "package.json"))
+        ? fs.readFileSync(path.join(repoPath, monorepoInfo.frontendPath, "package.json"), "utf-8")
+        : "";
+
       const codeMetadata = `
         Framework: ${framework}
         Required Env Vars: ${envVars.join(", ")}
         Directory Listing: ${fs.readdirSync(repoPath).join(", ")}
-        Package.json: ${fs.readFileSync(path.join(repoPath, "package.json"), "utf-8")}
+        Root Package.json: ${fs.existsSync(path.join(repoPath, "package.json")) ? fs.readFileSync(path.join(repoPath, "package.json"), "utf-8") : ""}
+        Frontend Package.json: ${frontendPjson}
       `;
 
       const recommendedInfra = await askGeminiArchitect(codeMetadata, credentials?.geminiKey);
@@ -315,7 +343,15 @@ app.listen(port, () => {
       while (buildAttempt <= maxBuildAttempts && !buildSuccess) {
         addThought("observe", `[Building] Running build pipeline (Attempt ${buildAttempt} of ${maxBuildAttempts})...`);
         
-        const buildResult = await runSandboxedBuild(repoPath, packageManager, (logLine) => {
+        const buildPath = monorepoInfo.isMonorepo && monorepoInfo.frontendPath
+          ? path.join(repoPath, monorepoInfo.frontendPath)
+          : repoPath;
+        
+        const buildPM = monorepoInfo.isMonorepo && monorepoInfo.frontendPath
+          ? selectPackageManager(buildPath)
+          : packageManager;
+
+        const buildResult = await runSandboxedBuild(buildPath, buildPM, (logLine) => {
           // Stream logs in real-time straight to client terminal
           addThought("act", logLine.message, { source: logLine.source });
         });
@@ -384,14 +420,19 @@ app.listen(port, () => {
       let deployUrl = "";
 
       if (monorepoInfo.isMonorepo) {
-        addThought("act", "[Coordinated Deployment] Probing monorepo packages. Directing backend express API to Render and frontend Next.js to Vercel...");
+        const backendRelativePath = monorepoInfo.backendPath || "apps/api";
+        const frontendRelativePath = monorepoInfo.frontendPath || "apps/web";
+        const backendFullPath = path.join(repoPath, backendRelativePath);
+        const frontendFullPath = path.join(repoPath, frontendRelativePath);
+
+        addThought("act", "[Coordinated Deployment] Probing monorepo packages. Directing backend to Render and frontend to Vercel...");
         
         // Step 6.1: Deploy Backend to Render
-        addThought("act", "[Coordinated Deployment] Step 1/3: Triggering Render adapter to deploy backend service (apps/api)...");
+        addThought("act", `[Coordinated Deployment] Step 1/3: Triggering Render adapter to deploy backend service (${backendRelativePath})...`);
         
         const renderDeployer = new RenderDeployer();
         const renderResult = await renderDeployer.deploy({
-          repoPath: path.join(repoPath, "apps/api"),
+          repoPath: backendFullPath,
           token: credentials?.renderToken
         });
         
@@ -403,7 +444,7 @@ app.listen(port, () => {
         
         const vercelDeployer = new VercelDeployer();
         const vercelResult = await vercelDeployer.deploy({
-          repoPath: path.join(repoPath, "apps/web"),
+          repoPath: frontendFullPath,
           token: credentials?.vercelToken,
           envVars: {
             NEXT_PUBLIC_API_URL: backendUrl
