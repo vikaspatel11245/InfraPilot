@@ -23,7 +23,7 @@ if (apiKey) {
 export const infraSchema = {
   type: SchemaType.OBJECT,
   properties: {
-    provider: { type: SchemaType.STRING, description: "vercel | render | flyio" },
+    provider: { type: SchemaType.STRING, description: "vercel | render | both" },
     estimatedCost: { type: SchemaType.STRING },
     confidence: { type: SchemaType.NUMBER },
     reasoning: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -31,9 +31,9 @@ export const infraSchema = {
       type: SchemaType.OBJECT,
       properties: {
         cpu: { type: SchemaType.STRING },
-        memory: { type: SchemaType.STRING },
-        database: { type: SchemaType.STRING }
-      }
+        memory: { type: SchemaType.STRING }
+      },
+      required: ["cpu", "memory"]
     }
   },
   required: ["provider", "estimatedCost", "confidence", "reasoning", "suggestedSpecs"]
@@ -54,8 +54,7 @@ export async function askGeminiArchitect(codeContext: string, customApiKey?: str
       ],
       suggestedSpecs: {
         cpu: "0.5 Core",
-        memory: "512MB RAM",
-        database: "Supabase PG"
+        memory: "512MB RAM"
       }
     };
   }
@@ -63,8 +62,8 @@ export async function askGeminiArchitect(codeContext: string, customApiKey?: str
   try {
     const client = new GoogleGenerativeAI(activeKey);
     const model = client.getGenerativeModel({
-      model: "gemini-1.5-pro",
-      systemInstruction: "You are an expert autonomous cloud systems architect. Analyze the provided codebase metadata and return the optimal cost-effective hosting target."
+      model: "gemini-2.5-pro",
+      systemInstruction: "You are an expert autonomous cloud systems architect. Analyze the provided codebase metadata and return the optimal cost-effective hosting target. Choose strictly between Vercel (for frontend/static), Render (for backend/containers), or both (for hybrid monorepos). Do not include any database specifications (e.g. SQLite, PostgreSQL) in your matching logic."
     });
 
     const result = await model.generateContent({
@@ -83,7 +82,7 @@ export async function askGeminiArchitect(codeContext: string, customApiKey?: str
       estimatedCost: "$5.00",
       confidence: 0.85,
       reasoning: ["Encountered fallback analysis loop.", "Generic Node.js environment matched."],
-      suggestedSpecs: { cpu: "0.25 Core", memory: "256MB RAM", database: "SQLite" }
+      suggestedSpecs: { cpu: "0.25 Core", memory: "256MB RAM" }
     };
   }
 }
@@ -99,7 +98,7 @@ export async function askGeminiPatcher(fileContent: string, errorLog: string, cu
   try {
     const client = new GoogleGenerativeAI(activeKey);
     const model = client.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: "You are an expert autonomous software debugger. Fix the provided source code to resolve the compiler error."
     });
 

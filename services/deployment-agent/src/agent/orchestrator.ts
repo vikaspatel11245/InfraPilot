@@ -220,7 +220,12 @@ app.listen(port, () => {
         } else if (packageManager === "yarn") {
           execSync("yarn install", { cwd: repoPath, stdio: "ignore" });
         } else {
-          execSync("npm install", { cwd: repoPath, stdio: "ignore" });
+          try {
+            execSync("npm install", { cwd: repoPath, stdio: "ignore" });
+          } catch (firstErr) {
+            addThought("observe", `[Setup] Standard npm install failed. Retrying with --legacy-peer-deps...`);
+            execSync("npm install --legacy-peer-deps", { cwd: repoPath, stdio: "ignore" });
+          }
         }
       } catch (installErr: any) {
         addThought("observe", `[Setup] Sandboxed package installation produced warnings: ${installErr.message}`);
@@ -236,7 +241,12 @@ app.listen(port, () => {
           } else if (frontendPM === "yarn") {
             execSync("yarn install", { cwd: frontendFullPath, stdio: "ignore" });
           } else {
-            execSync("npm install", { cwd: frontendFullPath, stdio: "ignore" });
+            try {
+              execSync("npm install", { cwd: frontendFullPath, stdio: "ignore" });
+            } catch (firstErr) {
+              addThought("observe", `[Setup] Standard npm install in frontend folder failed. Retrying with --legacy-peer-deps...`);
+              execSync("npm install --legacy-peer-deps", { cwd: frontendFullPath, stdio: "ignore" });
+            }
           }
         } catch (installErr: any) {
           addThought("observe", `[Setup] Frontend package installation produced warnings: ${installErr.message}`);
@@ -327,7 +337,7 @@ app.listen(port, () => {
       
       // Simulate rapid provisioning tasks
       await new Promise((r) => setTimeout(r, 1500));
-      addThought("observe", "[Provisioning] Cloud routing networks and database endpoints successfully linked.");
+      addThought("observe", "[Provisioning] Cloud routing networks successfully linked.");
       updatePhase("provisioning", "success", "Network interfaces and specs provisioned.");
 
       // ----------------------------------------------------
@@ -363,7 +373,20 @@ app.listen(port, () => {
           addThought("reflect", `[Building] Sandbox compilation failed during execution.`);
           
           if (buildAttempt < maxBuildAttempts) {
-            const failingFile = findFailingFile(buildResult.errorLog || "");
+            let failingFile = findFailingFile(buildResult.errorLog || "");
+            
+            // SPECIAL AUTOMATIC HEALING FOR VITE TOP-LEVEL AWAIT ISSUES
+            if (!failingFile && (buildResult.errorLog || "").includes("Top-level await is not available")) {
+              const viteConfigPath = path.join(buildPath, "vite.config.ts");
+              if (fs.existsSync(viteConfigPath)) {
+                failingFile = viteConfigPath;
+              } else {
+                const viteConfigJsPath = path.join(buildPath, "vite.config.js");
+                if (fs.existsSync(viteConfigJsPath)) {
+                  failingFile = viteConfigJsPath;
+                }
+              }
+            }
             
             if (failingFile) {
               const fileBasename = path.basename(failingFile);

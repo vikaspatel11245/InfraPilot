@@ -37,8 +37,7 @@ deploymentsDb[initialId] = {
     ],
     suggestedSpecs: {
       cpu: "0.5 Core",
-      memory: "512MB RAM",
-      database: "Supabase PG"
+      memory: "512MB RAM"
     }
   },
   appliedFixes: [
@@ -163,7 +162,7 @@ function mockProgressRunner(id: string) {
         estimatedCost: "$5.00",
         confidence: 0.95,
         reasoning: ["Detected minimal container requirements.", "Mapped standard node runtime parameters."],
-        suggestedSpecs: { cpu: "0.25 Core", memory: "256MB RAM", database: "SQLite" }
+        suggestedSpecs: { cpu: "0.25 Core", memory: "256MB RAM" }
       };
       dep.agentThoughts.push({
         timestamp: new Date().toISOString(),
