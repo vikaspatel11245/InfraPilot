@@ -63,6 +63,36 @@ export function detectMonorepo(repoPath: string): MonorepoInfo {
       };
     }
 
+    // Check if root itself is a frontend having a package.json
+    let rootIsFrontend = false;
+    if (fs.existsSync(pjsonPath)) {
+      try {
+        const rootPjson = JSON.parse(fs.readFileSync(pjsonPath, "utf-8"));
+        const deps = { ...(rootPjson.dependencies || {}), ...(rootPjson.devDependencies || {}) };
+        if (deps["next"] || deps["react"] || deps["vue"] || deps["nuxt"] || deps["svelte"] || deps["@angular/core"] || deps["vite"]) {
+          rootIsFrontend = true;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // If root is frontend, is there a backend directory or backend files?
+    if (rootIsFrontend) {
+      const hasBackendDir = subdirs.some(d => d.toLowerCase() === "backend" || d.toLowerCase() === "server" || d.toLowerCase() === "api");
+      const hasPythonFiles = fs.existsSync(path.join(repoPath, "requirements.txt")) || fs.existsSync(path.join(repoPath, "api.py")) || fs.existsSync(path.join(repoPath, "main.py"));
+      
+      if (hasBackendDir || hasPythonFiles) {
+        console.log(`[Monorepo Analyzer] Detected root frontend with nested backend. Configuring multi-cloud co-deployment...`);
+        return {
+          isMonorepo: true,
+          type: "hybrid",
+          backendPath: ".", // Deploy whole repo to Render for backend execution
+          frontendPath: "." // Deploy whole repo to Vercel for frontend compilation
+        };
+      }
+    }
+
     // Look for any subdirectory containing a package.json with a web framework dependency (e.g. Next, React, Vue, Nuxt, Svelte)
     for (const dir of subdirs) {
       const subPjsonPath = path.join(repoPath, dir, "package.json");
